@@ -12,42 +12,49 @@
 #include <array>
 #include <iostream>
 #include <cassert>
+#include <iomanip>
+#include <bitset>
+#include <cstring>
 
 using namespace std;
 
-int F(int X, int Y, int Z) {
-    return (X & Y) | (~X & Z);
+u_int F(u_int X, u_int Y, u_int Z) {
+    return (X & Y) | ((~X) & Z);
 }
 
-int G(int X, int Y, int Z) {
-    return (X & Y) | (Y & ~Z);
+u_int G(u_int X, u_int Y, u_int Z) {
+    return (X & Z) | (Y & (~Z));
 }
 
-int H(int X, int Y, int Z) {
+u_int H(u_int X, u_int Y, u_int Z) {
     return X ^ Y ^ Z;
 }
 
-int I(int X, int Y, int Z) {
-    return Y ^ (X | ~Z);
+u_int I(u_int X, u_int Y, u_int Z) {
+    return Y ^ (X | (~Z));
+}
+
+u_int leftRotate(u_int x, int n) {
+    return (x << n) | (x >> (32 - n));
 }
 
 // initialize T array
-int T[64] = [0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
-             0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
-             0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
-             0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
-             0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
-             0xd62f105d,  0x2441453, 0xd8a1e681, 0xe7d3fbc8,
-             0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
-             0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
-             0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
-             0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
-             0x289b7ec6, 0xeaa127fa, 0xd4ef3085,  0x4881d05,
-             0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
-             0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039,
-             0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
-             0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
-             0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391];
+u_int T[64] = {0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
+               0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+               0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
+               0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+               0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
+               0xd62f105d,  0x2441453, 0xd8a1e681, 0xe7d3fbc8,
+               0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
+               0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+               0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
+               0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+               0x289b7ec6, 0xeaa127fa, 0xd4ef3085,  0x4881d05,
+               0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+               0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039,
+               0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+               0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
+               0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391};
 
 int md5(string message) {
     int messageBits = message.length() * 8;
@@ -66,7 +73,7 @@ int md5(string message) {
     const int numWords = (messageBits + numPadding + 64) / 32;
     cout << "numWords: " << numWords << endl;
 
-    vector <unsigned long long> words(numWords);
+    vector <u_int32_t> words(numWords);
 
     int wordIndex = 0;
     for (int i = 0; i < message.length(); i++) {
@@ -77,52 +84,86 @@ int md5(string message) {
     }
 
     // Add padding of 1 followed by 0s
-    words[words] = (words[words] << 1) | 0x01;
+    words[wordIndex] = (words[wordIndex] << 1) | 0x01;
     for (int i = 0; i < numPadding-1; i++) {
-        words[wordIndex] = (words[words] << 1) | 0x00;
-        if ((i+2) % 32 == 0) {
+        words[wordIndex] = (words[wordIndex] << 1) | 0x00;
+        if ((messageBits+i+2) % 32 == 0) {
             wordIndex++;
         }
     }
 
     // Add length of message
-    assert(messageBits < (1 << 32));
+    //assert(messageBits < (1 << 32));
     words[wordIndex] = 0x00;
-    words[wordIndex+1] = (words[wordIndex] << 32) | messageBits;
+    words[wordIndex+1] = messageBits;
 
-    int A = 0x01234567;
-    int B = 0x89abcdef;
-    int C = 0xfedcba98;
-    int D = 0x76543210;
+    u_int32_t A = 0x01234567;
+    u_int32_t B = 0x89abcdef;
+    u_int32_t C = 0xfedcba98;
+    u_int32_t D = 0x76543210;
 
     for (int i = 0; i < numWords / 16; i++) {
-        array<int, 16> X;
+        array<u_int32_t, 16> X;
+        memset(&X, 0, sizeof(X));
+
         for (int j = 0; j < 16; j++) {
             X[j] = words[i*16 + j];
         }
 
-        int AA = A;
-        int BB = B;
-        int CC = C;
-        int DD = D;
+        u_int32_t AA = A;
+        u_int32_t BB = B;
+        u_int32_t CC = C;
+        u_int32_t DD = D;
 
         // Round 1
-        for (int i = 0; i < 4; i++) {
-            A = B + ((A + F(B, C, D) + X[i*4+0] + T[i*4+0]) <<< 7)
-            D = A + ((D + F(A, B, C) + X[i*4+1] + T[i*4+1]) <<< 12)
-            C = D + ((C + F(D, A, B) + X[i*4+2] + T[i*4+2]) <<< 17)
-            B = C + ((B + F(C, D, A) + X[i*4+3] + T[i*4+3]) <<< 22)
+        for (int j = 0; j < 4; j++) {
+            A = B + leftRotate((A + F(B, C, D) + X[j*4+0] + T[j*4+0]), 7);
+            D = A + leftRotate((D + F(A, B, C) + X[j*4+1] + T[j*4+1]), 12);
+            C = D + leftRotate((C + F(D, A, B) + X[j*4+2] + T[j*4+2]), 17);
+            B = C + leftRotate((B + F(C, D, A) + X[j*4+3] + T[j*4+3]), 22);
         }
 
         // Round 2
-        for (int i = 0; i < 4; i++) {
-            A = B + ((A + G(B, C, D) + X[(i*4+1)%16] + T[i*4+17]) <<< 5)
-            D = A + ((D + G(A, B, C) + X[(i*4+6)%16] + T[i*4+18]) <<< 9)
-            C = D + ((C + G(D, A, B) + X[(i*4+11)%16] + T[i*4+19]) <<< 14)
-            B = C + ((B + G(C, D, A) + X[(i*4+0)%16] + T[i*4+20]) <<< 20)
+        for (int j = 0; j < 4; j++) {
+            A = B + leftRotate((A + G(B, C, D) + X[(j*4+1)%16] + T[j*4+16]), 5);
+            D = A + leftRotate((D + G(A, B, C) + X[(j*4+6)%16] + T[j*4+17]), 9);
+            C = D + leftRotate((C + G(D, A, B) + X[(j*4+11)%16] + T[j*4+18]), 14);
+            B = C + leftRotate((B + G(C, D, A) + X[(j*4+0)%16] + T[j*4+19]), 20);
         }
 
+        // Round 3
+        for (int j = 0; j < 4; j++) {
+            A = B + leftRotate((A + H(B, C, D) + X[(j*4+5)%16] + T[j*4+32]), 4);
+            D = A + leftRotate((D + H(A, B, C) + X[(j*4+8)%16] + T[j*4+33]), 11);
+            C = D + leftRotate((C + H(D, A, B) + X[(j*4+11)%16] + T[j*4+34]), 16);
+            B = C + leftRotate((B + H(C, D, A) + X[(j*4+14)%16] + T[j*4+35]), 23);
+        }
+
+        // Round 4
+        for (int j = 0; j < 4; j++) {
+            A = B + leftRotate((A + I(B, C, D) + X[(j*4+0)%16] + T[j*4+48]), 6);
+            D = A + leftRotate((D + I(A, B, C) + X[(j*4+7)%16] + T[j*4+49]), 10);
+            C = D + leftRotate((C + I(D, A, B) + X[(j*4+14)%16] + T[j*4+50]), 15);
+            B = C + leftRotate((B + I(C, D, A) + X[(j*4+5)%16] + T[j*4+51]), 21);
+        }
+
+        A += AA;
+        B += BB;
+        C += CC;
+        D += DD;
     }
+
+    // 65a8e27d 88792838 31b664bd 8b7f0ad4
+
+    cout << "A: " << std::bitset<32>(A) << endl;
+    cout << "B: " << std::bitset<32>(B) << endl;
+    cout << "C: " << std::bitset<32>(C) << endl;
+    cout << "D: " << std::bitset<32>(D) << endl;
+
+    // 00001100 11000001 01110101 10111001
+    // 11000000 11110001 10110110 10101000
+    // 00110001 11000011 10011001 11100010
+    // 01101001 01110111 00100110 01100001
 
 
     return 0;

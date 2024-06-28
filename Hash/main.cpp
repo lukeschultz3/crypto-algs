@@ -5,7 +5,8 @@
 using namespace std;
 
 int main() {
-    string message = "Hello, World!";
+    //string message = "Hello, World!";
+    string message = "a";
     md5(message);
 
     return 0;
